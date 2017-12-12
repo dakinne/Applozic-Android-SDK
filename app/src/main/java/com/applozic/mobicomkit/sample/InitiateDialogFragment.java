@@ -27,6 +27,9 @@ public class InitiateDialogFragment extends DialogFragment implements DialogInte
                 .setPositiveButton(R.string.start, this).setNegativeButton(R.string.cancel, null).setView(inputEditText).create();
     }
 
+
+
+
     @Override
     public void onClick(DialogInterface dialog, int position) {
 

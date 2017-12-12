@@ -123,6 +123,18 @@
                 android:text=""
                 android:textColor="@color/message_text_color"
                 android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/product"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAlignment="gravity"
+                android:paddingLeft="8dp"
+                android:text=""
+                android:textColor="@color/message_text_color"
+                android:textSize="16sp"
+                android:visibility="gone"/>
+
         </LinearLayout>
 
         <TextView

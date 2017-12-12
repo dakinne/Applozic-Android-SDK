@@ -187,6 +187,7 @@ public class DetailedConversationAdapter extends ArrayAdapter<Message> {
         LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         final Message message = getItem(position);
         int type = getItemViewType(position);
+        
         if (type == 2) {
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MMM dd, yyyy");
             SimpleDateFormat simpleDateFormatDay = new SimpleDateFormat("EEEE");
@@ -233,6 +234,15 @@ public class DetailedConversationAdapter extends ArrayAdapter<Message> {
             customView = inflater.inflate(R.layout.mobicom_sent_message_list_view, parent, false);
         }
         if (message != null) {
+
+            final Map<String, String> metadata = message.getMetadata();
+            final String metaType = metadata.get("type");
+            if ("PRODUCT".equals(metaType)) {
+                final TextView product = customView.findViewById(R.id.product);
+                product.setText("Producto con id " + metadata.get("productId"));
+                product.setVisibility(View.VISIBLE);
+            }
+
             Contact receiverContact = null;
             Contact contactDisplayName = null;
             if (message.getGroupId() == null) {
@@ -294,7 +304,9 @@ public class DetailedConversationAdapter extends ArrayAdapter<Message> {
             ImageView imageViewPhoto = (ImageView) customView.findViewById(R.id.imageViewForPhoto);
             TextView replyNameTextView = (TextView) customView.findViewById(R.id.replyNameTextView);
             ImageView imageViewForAttachmentType = (ImageView) customView.findViewById(R.id.imageViewForAttachmentType);
-            createdAtTime.setTextColor(Color.parseColor(alCustomizationSettings.getMessageTimeTextColor()));
+            if (createdAtTime != null) {
+                createdAtTime.setTextColor(Color.parseColor(alCustomizationSettings.getMessageTimeTextColor()));
+            }
 
             if (message.getMetadata() != null && !message.getMetadata().isEmpty() && message.getMetadata().containsKey(Message.MetaDataType.AL_REPLY.getValue())) {
                 final Message msg = messageDatabaseService.getMessage(message.getMetaDataValueForKey(Message.MetaDataType.AL_REPLY.getValue()));
@@ -457,26 +469,36 @@ public class DetailedConversationAdapter extends ArrayAdapter<Message> {
                 nameTextView.setTextColor(context.getResources().getColor(AlphaNumberColorUtil.alphabetBackgroundColorMap.get(colorKey)));
             }
 
-            attachmentDownloadLayout.setVisibility(View.GONE);
-            preview.setVisibility(message.hasAttachment() ? View.VISIBLE : View.GONE);
-            attachmentView.setVisibility(View.GONE);
-            if (message.isTypeOutbox() && !message.isCanceled()) {
-                mediaUploadProgressBar.setVisibility(message.isAttachmentUploadInProgress() ? View.VISIBLE : View.GONE);
-            } else {
-                mediaUploadProgressBar.setVisibility(View.GONE);
+            if (attachmentDownloadLayout != null) {
+                attachmentDownloadLayout.setVisibility(View.GONE);
+            }
+            if (preview != null) {
+                preview.setVisibility(message.hasAttachment() ? View.VISIBLE : View.GONE);
+            }
+            if (attachmentView != null) {
+                attachmentView.setVisibility(View.GONE);
+            }
+            if (mediaUploadProgressBar != null) {
+                if (message.isTypeOutbox() && !message.isCanceled()) {
+                    mediaUploadProgressBar.setVisibility(message.isAttachmentUploadInProgress() ? View.VISIBLE : View.GONE);
+                } else {
+                    mediaUploadProgressBar.setVisibility(View.GONE);
+                }
             }
             if (attachedFile != null) {
                 attachedFile.setVisibility(message.hasAttachment() ? View.VISIBLE : View.GONE);
             }
             //Todo: show progress for download image of type inbox
 
-            if (individual && message.getTimeToLive() != null) {
-                selfDestruct
-                        .setText("Self destruct in " + message.getTimeToLive() + " mins");
-                selfDestruct.setVisibility(View.VISIBLE);
-            } else {
-                selfDestruct.setText("");
-                selfDestruct.setVisibility(View.GONE);
+            if (selfDestruct != null) {
+                if (individual && message.getTimeToLive() != null) {
+                    selfDestruct
+                            .setText("Self destruct in " + message.getTimeToLive() + " mins");
+                    selfDestruct.setVisibility(View.VISIBLE);
+                } else {
+                    selfDestruct.setText("");
+                    selfDestruct.setVisibility(View.GONE);
+                }
             }
 
             if (sentOrReceived != null) {
@@ -511,7 +533,9 @@ public class DetailedConversationAdapter extends ArrayAdapter<Message> {
                     statusIcon = (message.getDelivered() || (contact != null && new Support(context).isSupportNumber(contact.getFormattedContactNumber())) ?
                             deliveredIcon : (message.getScheduledAt() != null ? scheduledIcon : sentIcon));
                 }
-                createdAtTime.setCompoundDrawablesWithIntrinsicBounds(null, null, statusIcon, null);
+                if (createdAtTime != null) {
+                    createdAtTime.setCompoundDrawablesWithIntrinsicBounds(null, null, statusIcon, null);
+                }
             }
 
             if (message.isCall()) {
@@ -646,82 +670,92 @@ public class DetailedConversationAdapter extends ArrayAdapter<Message> {
             if (message.isCanceled()) {
                 attachmentRetry.setVisibility(View.VISIBLE);
             }
-            attachmentRetry.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    if (Utils.isInternetAvailable(context)) {
-                        File file = null;
-                        if (message != null && message.getFilePaths() != null) {
-                            file = new File(message.getFilePaths().get(0));
+            if (attachmentRetry != null) {
+                attachmentRetry.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        if (Utils.isInternetAvailable(context)) {
+                            File file = null;
+                            if (message != null && message.getFilePaths() != null) {
+                                file = new File(message.getFilePaths().get(0));
+                            }
+                            if (file != null && !file.exists()) {
+                                Toast.makeText(context, context.getString(R.string.file_does_not_exist), Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            Toast.makeText(context, context.getString(R.string.applozic_resending_attachment), Toast.LENGTH_SHORT).show();
+                            mediaUploadProgressBar.setVisibility(View.VISIBLE);
+                            attachmentRetry.setVisibility(View.GONE);
+                            //updating Cancel Flag to smListItem....
+                            message.setCanceled(false);
+                            messageDatabaseService.updateCanceledFlag(message.getMessageId(), 0);
+                            conversationService.sendMessage(message, messageIntentClass);
+                        } else {
+                            Toast.makeText(context, context.getString(R.string.internet_connection_not_available), Toast.LENGTH_SHORT).show();
                         }
-                        if (file != null && !file.exists()) {
-                            Toast.makeText(context, context.getString(R.string.file_does_not_exist), Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-                        Toast.makeText(context, context.getString(R.string.applozic_resending_attachment), Toast.LENGTH_SHORT).show();
-                        mediaUploadProgressBar.setVisibility(View.VISIBLE);
-                        attachmentRetry.setVisibility(View.GONE);
-                        //updating Cancel Flag to smListItem....
-                        message.setCanceled(false);
-                        messageDatabaseService.updateCanceledFlag(message.getMessageId(), 0);
-                        conversationService.sendMessage(message, messageIntentClass);
-                    } else {
-                        Toast.makeText(context, context.getString(R.string.internet_connection_not_available), Toast.LENGTH_SHORT).show();
                     }
-                }
-            });
-            attachmentDownloadProgressLayout.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    attachmentView.setVisibility(View.GONE);
-                    attachmentView.cancelDownload();
-                    attachmentDownloadProgressLayout.setVisibility(View.GONE);
-                    message.setAttDownloadInProgress(false);
-                }
-            });
+                });
+            }
+            if (attachmentDownloadProgressLayout != null) {
+                attachmentDownloadProgressLayout.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        attachmentView.setVisibility(View.GONE);
+                        attachmentView.cancelDownload();
+                        attachmentDownloadProgressLayout.setVisibility(View.GONE);
+                        message.setAttDownloadInProgress(false);
+                    }
+                });
+            }
 
             //final ProgressBar mediaDownloadProgressBar = mediaDownloadProgressBar;
-            preview.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    //TODO: 1. get the image Size and decide if we can download directly
-                    //2. if already downloaded to ds card show it directly ....
-                    //3. if deleted from sd crad only ...ask user to download it again or skip ...
-                    if (message.getContentType() == Message.ContentType.TEXT_URL.getValue()) {
-                        return;
-                    }
-                    if (message.isAttachmentDownloaded()) {
-                        showFullView(message);
-                        return;
-                    } if ((message.isTypeOutbox() && message.isSentToServer()) || (!message.isTypeOutbox())) {
-                        attachmentDownloadLayout.setVisibility(View.GONE);
-                        attachmentView.setProressBar(mediaDownloadProgressBar);
-                        attachmentView.setDownloadProgressLayout(attachmentDownloadProgressLayout);
-                        attachmentView.setMessage(message);
-                        attachmentView.setVisibility(View.VISIBLE);
-                        attachmentDownloadProgressLayout.setVisibility(View.VISIBLE);
-                    }
+            if (preview != null) {
+                preview.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        //TODO: 1. get the image Size and decide if we can download directly
+                        //2. if already downloaded to ds card show it directly ....
+                        //3. if deleted from sd crad only ...ask user to download it again or skip ...
+                        if (message.getContentType() == Message.ContentType.TEXT_URL.getValue()) {
+                            return;
+                        }
+                        if (message.isAttachmentDownloaded()) {
+                            showFullView(message);
+                            return;
+                        }
+                        if ((message.isTypeOutbox() && message.isSentToServer()) || (!message.isTypeOutbox())) {
+                            attachmentDownloadLayout.setVisibility(View.GONE);
+                            attachmentView.setProressBar(mediaDownloadProgressBar);
+                            attachmentView.setDownloadProgressLayout(attachmentDownloadProgressLayout);
+                            attachmentView.setMessage(message);
+                            attachmentView.setVisibility(View.VISIBLE);
+                            attachmentDownloadProgressLayout.setVisibility(View.VISIBLE);
+                        }
 
-                }
-            });
-            preview.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View v) {
-                    return false;
-                }
-            });
-            attachmentView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    showFullView(message);
-                }
-            });
-            attachmentView.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View v) {
-                    return false;
-                }
-            });
+                    }
+                });
+
+                preview.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        return false;
+                    }
+                });
+            }
+            if (attachmentView != null) {
+                attachmentView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        showFullView(message);
+                    }
+                });
+                attachmentView.setOnLongClickListener(new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        return false;
+                    }
+                });
+            }
             if (attachedFile != null) {
                 attachedFile.setOnLongClickListener(new View.OnLongClickListener() {
                     @Override
@@ -832,7 +866,9 @@ public class DetailedConversationAdapter extends ArrayAdapter<Message> {
                 setupContactShareView(message, mainContactShareLayout);
                 return customView;
             } else {
-                mainContactShareLayout.setVisibility(View.GONE);
+                if (mainContactShareLayout != null) {
+                    mainContactShareLayout.setVisibility(View.GONE);
+                }
 
             }
 

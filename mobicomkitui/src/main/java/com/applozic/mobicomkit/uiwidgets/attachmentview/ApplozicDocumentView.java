@@ -84,9 +84,12 @@ public class ApplozicDocumentView {
         audioseekbar = (SeekBar) rootview.findViewById(R.id.applozic_audio_seekbar);
         audio_duration_textView = (TextView) rootview.findViewById(R.id.audio_duration_textView);
         if (message.isTypeOutbox()) {
-            progressBar.getIndeterminateDrawable().setColorFilter(R.color.applozic_green_color, android.graphics.PorterDuff.Mode.MULTIPLY);
-            cancelIcon.setColorFilter(R.color.white, android.graphics.PorterDuff.Mode.MULTIPLY);
-
+            if (progressBar != null) {
+                progressBar.getIndeterminateDrawable().setColorFilter(R.color.applozic_green_color, android.graphics.PorterDuff.Mode.MULTIPLY);
+            }
+            if (cancelIcon != null) {
+                cancelIcon.setColorFilter(R.color.white, android.graphics.PorterDuff.Mode.MULTIPLY);
+            }
 
             if (message.getFileMetas() != null) {
                 if (message.getFileMetas().getContentType().contains("audio")) {
@@ -101,10 +104,18 @@ public class ApplozicDocumentView {
                     updateApplozicSeekBar();
                 }
             }
-            fileText.setTextColor(ContextCompat.getColor(context, R.color.message_text_color));
-            audioseekbar.getProgressDrawable().setColorFilter(0xFFFFFFFF, PorterDuff.Mode.MULTIPLY);
-            cancelIcon.setVisibility(View.GONE);
-            docIcon.setColorFilter(0xffffffff);
+            if (fileText != null) {
+                fileText.setTextColor(ContextCompat.getColor(context, R.color.message_text_color));
+            }
+            if (audioseekbar != null) {
+                audioseekbar.getProgressDrawable().setColorFilter(0xFFFFFFFF, PorterDuff.Mode.MULTIPLY);
+            }
+            if (cancelIcon != null) {
+                cancelIcon.setVisibility(View.GONE);
+            }
+            if (docIcon != null) {
+                docIcon.setColorFilter(0xffffffff);
+            }
 
         } else {
             progressBar.getIndeterminateDrawable().setColorFilter(R.color.black, android.graphics.PorterDuff.Mode.MULTIPLY);
@@ -220,7 +231,9 @@ public class ApplozicDocumentView {
     }
 
     public void hideView(boolean hideView) {
-        mainLayout.setVisibility(hideView ? View.GONE : View.VISIBLE);
+        if (mainLayout != null) {
+            mainLayout.setVisibility(hideView ? View.GONE : View.VISIBLE);
+        }
     }
 
     public void showPreview() {
@@ -318,7 +331,7 @@ public class ApplozicDocumentView {
                 messageDatabaseService.updateCanceledFlag(message.getMessageId(), 0);
                 Intent intent = new Intent(context, MessageIntentService.class);
                 intent.putExtra(MobiComKitConstants.MESSAGE_JSON_INTENT, GsonUtils.getJsonFromObject(message, Message.class));
-                MessageIntentService.enqueueWork(context,intent);
+                MessageIntentService.enqueueWork(context,intent,null);
                 showDownloadInProgress();
 
             }
