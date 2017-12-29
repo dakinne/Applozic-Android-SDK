@@ -187,7 +187,7 @@ public class DetailedConversationAdapter extends ArrayAdapter<Message> {
         LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         final Message message = getItem(position);
         int type = getItemViewType(position);
-        
+
         if (type == 2) {
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MMM dd, yyyy");
             SimpleDateFormat simpleDateFormatDay = new SimpleDateFormat("EEEE");
